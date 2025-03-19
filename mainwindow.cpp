@@ -152,7 +152,6 @@ void MainWindow::on_kupiBtn_clicked() {
                      tablename + "'")) {
         soldTableModel->setQuery(query.executedQuery());
         ui->soldtable->setModel(soldTableModel);
-        delete soldTableModel;
       }
     } else {
       QMessageBox::critical(this, "Purchase", "Failed to update quantity: ");
