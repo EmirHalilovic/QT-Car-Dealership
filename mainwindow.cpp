@@ -19,8 +19,7 @@ MainWindow::MainWindow(QString tablename, QWidget *parent)
   ui->setupUi(this);
   setWindowIcon(QIcon(":/polo"));
   setFixedSize(QSize(1100, 700));
-  QFile styleSheetFile(
-      "C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/Integrid.qss");
+  QFile styleSheetFile("C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/Integrid.qss");
   styleSheetFile.open(QFile::ReadOnly);
   QString styleSheet = QLatin1String(styleSheetFile.readAll());
   this->setStyleSheet(styleSheet);
@@ -35,18 +34,15 @@ MainWindow::MainWindow(QString tablename, QWidget *parent)
   model->setQuery(std::move(query));
   ui->dbtable->setModel(model);
   QSqlQueryModel *soldTableModel = new QSqlQueryModel();
-  if (querys.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, "
-                  "cr.Price, ca.quantity "
+  if (querys.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, cr.Price, ca.quantity "
                   "FROM Cars AS cr "
                   "INNER JOIN Cars_Account AS ca ON cr.ID = ca.car_id "
                   "INNER JOIN Account AS ac ON ac.ID = ca.account_id "
-                  "WHERE ac.User = '" +
-                  tablename + "'")) {
+                  "WHERE ac.User = '" + tablename + "'")) {
     soldTableModel->setQuery(querys.executedQuery());
     ui->soldtable->setModel(soldTableModel);
-
   } else {
-    qDebug() << "Error executing query for soldtable: ";
+    qDebug() << "Error executing query for soldtable: " << querys.lastError();
     delete soldTableModel;
   }
 }
@@ -54,49 +50,37 @@ MainWindow::MainWindow(QString tablename, QWidget *parent)
 MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::on_logout_clicked() {
-
   logIn *log = new logIn;
   log->show();
   hide();
 }
 
 void MainWindow::on_aboutb_clicked() {
-
   About *aub = new About(tablename);
   aub->show();
   hide();
 }
 
 void MainWindow::on_superb_clicked() {
-  if (buttonValue == 0) {
-    buttonValue = 1;
-
-    QFont font = ui->superb->font();
-    font.setWeight(QFont::Bold);
-    ui->superb->setFont(font);
-
-    QString style = "QPushButton { background-color: rgba(70,162,218,50%); }";
-    ui->superb->setStyleSheet(style);
-  } else {
-    buttonValue = 0;
-    QFont font = ui->superb->font();
-    font.setWeight(QFont::Normal);
-    ui->superb->setFont(font);
-  }
+  buttonValue = !buttonValue;
+  QFont font = ui->superb->font();
+  font.setWeight(buttonValue ? QFont::Bold : QFont::Normal);
+  ui->superb->setFont(font);
+  QString style = buttonValue ? "QPushButton { background-color: rgba(70,162,218,50%); }" : "";
+  ui->superb->setStyleSheet(style);
 }
 
 void MainWindow::on_buttonLoad_clicked() { QSqlQueryModel m; }
 
+// Get the selected row from the database table
 void MainWindow::on_kupiBtn_clicked() {
-  // Get the selected row from the database table
   int index = ui->dbtable->currentIndex().row();
   if (index < 0) {
-    QMessageBox::warning(this, "No selection",
-                         "Please select a row from the table.");
+    QMessageBox::warning(this, "No selection", "Please select a row from the table.");
     return;
   }
 
-  // Get the data for each column in the selected row
+// Get the data for each column in the selected row
   QString brand = ui->dbtable->model()->index(index, 0).data().toString();
   QString fuel = ui->dbtable->model()->index(index, 1).data().toString();
   int mileage = ui->dbtable->model()->index(index, 2).data().toInt();
@@ -104,13 +88,12 @@ void MainWindow::on_kupiBtn_clicked() {
   qreal engine = ui->dbtable->model()->index(index, 4).data().toReal();
   qreal price = ui->dbtable->model()->index(index, 5).data().toReal();
 
-  // Check if the car is already present in the Cars_Account table
+// Check if the car is already present in the Cars_Account table
   QSqlQuery query;
-  query.prepare(
-      "SELECT * FROM Cars_Account WHERE car_id = (SELECT ID FROM Cars WHERE "
-      "Brand = :brand AND Fuel = :fuel AND Mileage = :mileage AND Age = :age "
-      "AND Engine = :engine AND Price = :price) AND account_id = (SELECT ID "
-      "FROM Account WHERE User = :user)");
+  query.prepare("SELECT * FROM Cars_Account WHERE car_id = (SELECT ID FROM Cars WHERE "
+                "Brand = :brand AND Fuel = :fuel AND Mileage = :mileage AND Age = :age "
+                "AND Engine = :engine AND Price = :price) AND account_id = (SELECT ID "
+                "FROM Account WHERE User = :user)");
   query.bindValue(":brand", brand);
   query.bindValue(":fuel", fuel);
   query.bindValue(":mileage", mileage);
@@ -120,16 +103,10 @@ void MainWindow::on_kupiBtn_clicked() {
   query.bindValue(":user", tablename);
 
   if (query.exec() && query.next()) {
-    // Car already exists in Cars_Account table, update the quantity
-    // int carId = query.value("car_id").toInt();
-    // int accountId = query.value("account_id").toInt();
-    // int currentQuantity = query.value("quantity").toInt();
-
-    query.prepare(
-        "UPDATE Cars_Account SET quantity = quantity + 1 WHERE car_id = "
-        "(SELECT ID FROM Cars WHERE Brand = :brand AND Fuel = :fuel AND "
-        "Mileage = :mileage AND Age = :age AND Engine = :engine AND Price = "
-        ":price) AND account_id = (SELECT ID FROM Account WHERE User = :user)");
+    query.prepare("UPDATE Cars_Account SET quantity = quantity + 1 WHERE car_id = "
+                  "(SELECT ID FROM Cars WHERE Brand = :brand AND Fuel = :fuel AND "
+                  "Mileage = :mileage AND Age = :age AND Engine = :engine AND Price = "
+                  ":price) AND account_id = (SELECT ID FROM Account WHERE User = :user)");
     query.bindValue(":brand", brand);
     query.bindValue(":fuel", fuel);
     query.bindValue(":mileage", mileage);
@@ -139,30 +116,24 @@ void MainWindow::on_kupiBtn_clicked() {
     query.bindValue(":user", tablename);
 
     if (query.exec()) {
-      QMessageBox::information(this, "Purchase",
-                               "Quantity updated successfully.");
-      // Refresh the soldTableModel
+      QMessageBox::information(this, "Purchase", "Quantity updated successfully.");
       QSqlQueryModel *soldTableModel = new QSqlQueryModel();
-      if (query.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, "
-                     "cr.Price, ca.quantity "
+      if (query.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, cr.Price, ca.quantity "
                      "FROM Cars AS cr "
                      "INNER JOIN Cars_Account AS ca ON cr.ID = ca.car_id "
                      "INNER JOIN Account AS ac ON ac.ID = ca.account_id "
-                     "WHERE ac.User = '" +
-                     tablename + "'")) {
+                     "WHERE ac.User = '" + tablename + "'")) {
         soldTableModel->setQuery(query.executedQuery());
         ui->soldtable->setModel(soldTableModel);
       }
     } else {
-      QMessageBox::critical(this, "Purchase", "Failed to update quantity: ");
+      QMessageBox::critical(this, "Purchase", "Failed to update quantity: " + query.lastError().text());
     }
   } else {
-    // Car does not exist in Cars_Account table, insert a new row
-    query.prepare(
-        "INSERT INTO Cars_Account (car_id, account_id, quantity) VALUES "
-        "((SELECT ID FROM Cars WHERE Brand = :brand AND Fuel = :fuel AND "
-        "Mileage = :mileage AND Age = :age AND Engine = :engine AND Price = "
-        ":price), (SELECT ID FROM Account WHERE User = :user), 1)");
+    query.prepare("INSERT INTO Cars_Account (car_id, account_id, quantity) VALUES "
+                  "((SELECT ID FROM Cars WHERE Brand = :brand AND Fuel = :fuel AND "
+                  "Mileage = :mileage AND Age = :age AND Engine = :engine AND Price = "
+                  ":price), (SELECT ID FROM Account WHERE User = :user), 1)");
     query.bindValue(":brand", brand);
     query.bindValue(":fuel", fuel);
     query.bindValue(":mileage", mileage);
@@ -172,27 +143,21 @@ void MainWindow::on_kupiBtn_clicked() {
     query.bindValue(":user", tablename);
 
     if (query.exec()) {
-      QMessageBox::information(this, "Purchase",
-                               "Car added to Cars_Account successfully.");
-      // Refresh the soldTableModel
+      QMessageBox::information(this, "Purchase", "Car added to Cars_Account successfully.");
       QSqlQueryModel *soldTableModel = new QSqlQueryModel();
-      if (query.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, "
-                     "cr.Price, ca.quantity "
+      if (query.exec("SELECT cr.Brand, cr.Fuel, cr.Mileage, cr.Age, cr.Engine, cr.Price, ca.quantity "
                      "FROM Cars AS cr "
                      "INNER JOIN Cars_Account AS ca ON cr.ID = ca.car_id "
                      "INNER JOIN Account AS ac ON ac.ID = ca.account_id "
-                     "WHERE ac.User = '" +
-                     tablename + "'")) {
+                     "WHERE ac.User = '" + tablename + "'")) {
         soldTableModel->setQuery(query.executedQuery());
         ui->soldtable->setModel(soldTableModel);
-
       } else {
-        qDebug() << "Error executing query for soldtable: ";
+        qDebug() << "Error executing query for soldtable: " << query.lastError();
         delete soldTableModel;
       }
     } else {
-      QMessageBox::critical(this, "Purchase",
-                            "Failed to add car to Cars_Account ");
+      QMessageBox::critical(this, "Purchase", "Failed to add car to Cars_Account: " + query.lastError().text());
     }
   }
 }
@@ -205,7 +170,7 @@ void MainWindow::on_refreshbutton_clicked() {
   QString startMileage = ui->startmilage->text();
   QString endMileage = ui->endmilage->text();
 
-  QString whereClause = "";
+  QString whereClause;
 
   if (!brand.isEmpty()) {
     whereClause += "Brand LIKE '" + brand + "%' AND ";
@@ -223,15 +188,13 @@ void MainWindow::on_refreshbutton_clicked() {
 
   if (ui->useMileage->isChecked()) {
     if (!startMileage.isEmpty() && !endMileage.isEmpty()) {
-      whereClause +=
-          "Mileage BETWEEN " + startMileage + " AND " + endMileage + " AND ";
+      whereClause += "Mileage BETWEEN " + startMileage + " AND " + endMileage + " AND ";
     }
   }
   if (buttonValue == 1) {
     whereClause += "SuperCar=" + QString::number(buttonValue) + " AND ";
   }
 
-  // Remove the last " AND " from the where clause
   if (whereClause.endsWith(" AND ")) {
     whereClause.chop(5);
   }
