@@ -16,19 +16,19 @@ logIn::logIn(QWidget *parent) : QDialog(parent), ui(new Ui::logIn) {
   setWindowTitle("Welcome");
   setWindowIcon(QIcon(":/polo"));
   setFixedSize(QSize(530, 500));
-
-  // Use relative path for stylesheet
-  QFile styleSheetFile(":/styles/Integrid.qss");
+  QFile styleSheetFile(
+      "C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/Integrid.qss");
   styleSheetFile.open(QFile::ReadOnly);
   QString styleSheet = QLatin1String(styleSheetFile.readAll());
   this->setStyleSheet(styleSheet);
 
-  // Use QSettings for database location and last user
-  QString defaultDbLocation = "autosalon.db";
+  QString defaultDbLocation =
+      "C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/autosalon.db";
+
   QSettings settings("AutoSalon", "MyApp");
   dbLocation = settings.value("dbLocation", defaultDbLocation).toString();
   ui->dbLocationLineEdit->setText(dbLocation);
-  ui->user->setText(settings.value("lastUser", "").toString());
+  defaultDbLocation = dbLocation;
 
   mydatabase = QSqlDatabase::addDatabase("QSQLITE");
   mydatabase.setDatabaseName(dbLocation);
@@ -40,8 +40,9 @@ logIn::logIn(QWidget *parent) : QDialog(parent), ui(new Ui::logIn) {
 }
 
 void logIn::on_Login_clicked() {
-  QString user = ui->user->text();
-  QString pass = ui->pass->text();
+  QString user, pass, ID;
+  user = ui->user->text();
+  pass = ui->pass->text();
 
   if (!mydatabase.isOpen()) {
     qDebug() << "Failed to open the database";
@@ -60,16 +61,20 @@ void logIn::on_Login_clicked() {
     }
 
     if (i == 1) {
-      QSettings settings("AutoSalon", "MyApp");
-      settings.setValue("lastUser", user); // Remember last user
+      if (role == "admin") // check if the user has an 'admin' role
+      {
 
-      if (role == "admin") {
         ui->stanje->setText("Admin Login Successful");
+
         AdminWindow *adminW = new AdminWindow();
         adminW->show();
       } else {
+        // grant the user access to regular user features
+        QString tablename = user;
+
         ui->stanje->setText("Login Successful");
-        MainWindow *MainW = new MainWindow(user);
+
+        MainWindow *MainW = new MainWindow(tablename);
         MainW->show();
       }
       this->close();
@@ -79,7 +84,6 @@ void logIn::on_Login_clicked() {
     }
   }
 }
-
 logIn::~logIn() { delete ui; }
 
 void logIn::on_pokazi_stateChanged() {
@@ -92,13 +96,16 @@ void logIn::on_pokazi_stateChanged() {
 
 void logIn::on_Register_clicked() {
   this->hide();
+
   Registracija *regi = new Registracija(this);
+
   regi->show();
 }
 
 void logIn::on_Confirmdb_clicked() {
   // Update the database location
   dbLocation = ui->dbLocationLineEdit->text();
+
   mydatabase.setDatabaseName(dbLocation);
 
   // Reopen the database
