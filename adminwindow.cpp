@@ -10,6 +10,7 @@
 #include <QWidget>
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlRelationalTableModel>
+#include <login.h>
 AdminWindow::AdminWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::AdminWindow) {
   ui->setupUi(this);
@@ -24,11 +25,11 @@ AdminWindow::AdminWindow(QWidget *parent)
   }
   setWindowIcon(QIcon(":/polo"));
   setFixedSize(QSize(1000, 450));
-  QFile styleSheetFile(
-      "C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/Integrid.qss");
-  styleSheetFile.open(QFile::ReadOnly);
-  QString styleSheet = QLatin1String(styleSheetFile.readAll());
-  this->setStyleSheet(styleSheet);
+  QFile styleSheetFile(":/Integrid.qss");
+  if (styleSheetFile.open(QFile::ReadOnly)) {
+      QString styleSheet = QLatin1String(styleSheetFile.readAll());
+      this->setStyleSheet(styleSheet);
+  }
 
   QSqlQuery query("SELECT User FROM Account");
   while (query.next()) {
@@ -345,7 +346,8 @@ void AdminWindow::on_deleteButton_clicked() {
       // Refresh the table view
       updateTableView();
       QMessageBox::information(this, "Delete", "Row deleted successfully");
-      model->setQuery(model->query());
+      model->setQuery(QSqlQuery(model->query().executedQuery(), QSqlDatabase::database()));
+
     } else {
       QMessageBox::critical(
           this, "Delete", "Failed to delete row: " + query.lastError().text());

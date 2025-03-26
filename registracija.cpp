@@ -8,11 +8,11 @@ Registracija::Registracija(QWidget *parent)
   setWindowTitle("Registration");
   setWindowIcon(QIcon(":/polo"));
   setFixedSize(QSize(530, 400));
-  QFile styleSheetFile(
-      "C:/Users/win10/Desktop/diplomski-rad-main/Diplomski_rad/Integrid.qss");
-  styleSheetFile.open(QFile::ReadOnly);
-  QString styleSheet = QLatin1String(styleSheetFile.readAll());
-  this->setStyleSheet(styleSheet);
+  QFile styleSheetFile(":/Integrid.qss");
+  if (styleSheetFile.open(QFile::ReadOnly)) {
+      QString styleSheet = QLatin1String(styleSheetFile.readAll());
+      this->setStyleSheet(styleSheet);
+  }
 
   ui->user->setMaxLength(10);
 
